@@ -150,10 +150,11 @@ public final class DeArrowCache {
                                        @NonNull final String videoId,
                                        @NonNull final DeArrowConfig config) {
         try {
-            final List<String> ids = DeArrowParser.bucketVideoIds(body);
-            for (final String id : ids) {
-                cache.put(id, DeArrowParser.parseBucketEntry(body, id, config));
-            }
+            // Parse the body ONCE. Calling parseBucketEntry per video re-parses the whole 17 KB
+            // payload for each of the ~130 videos in it; on a scrolling feed that quadratic work
+            // saturated the CPU and produced an "isn't responding" dialog on a real device
+            // (2026-09-23). The unit tests were green throughout.
+            cache.putAll(DeArrowParser.parseBucket(body, config));
             // A video absent from its own bucket simply has no submissions; cache that too, so
             // scrolling past it repeatedly does not re-request the bucket.
             cache.putIfAbsent(videoId, DeArrowBranding.NONE);

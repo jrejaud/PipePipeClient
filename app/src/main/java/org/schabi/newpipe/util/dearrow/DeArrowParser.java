@@ -17,8 +17,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -398,7 +400,38 @@ public final class DeArrowParser {
     }
 
     /**
-     * Lists every video id present in a bucket response, so the caller can cache them all.
+     * Parses a whole bucket response into branding for every video in it.
+     *
+     * <p>This exists so the JSON is parsed <em>once</em> per response. Calling
+     * {@link #parseBucketEntry} in a loop instead re-parses the entire body for every video,
+     * and a bucket holds well over a hundred of them — quadratic work on a 17 KB payload, which
+     * on a scrolling feed saturated the CPU and produced an "isn't responding" dialog on a real
+     * device (2026-09-23). Unit tests could never have caught that; only running it could.</p>
+     *
+     * @param json   the raw bucket response body
+     * @param config the user's settings
+     * @return video id to branding, for every video the bucket describes
+     * @throws DeArrowParseException if the body is not a JSON object
+     */
+    @NonNull
+    public static Map<String, DeArrowBranding> parseBucket(@NonNull final String json,
+                                                           @NonNull final DeArrowConfig config)
+            throws DeArrowParseException {
+        final JsonObject bucket = parseObject(json);
+        final Map<String, DeArrowBranding> out = new LinkedHashMap<>(bucket.size());
+        for (final Map.Entry<String, Object> entry : bucket.entrySet()) {
+            if (!(entry.getValue() instanceof JsonObject)) {
+                continue;
+            }
+            out.put(entry.getKey(), config.isEnabled()
+                    ? parseBranding((JsonObject) entry.getValue(), entry.getKey(), config)
+                    : DeArrowBranding.NONE);
+        }
+        return out;
+    }
+
+    /**
+     * Lists every video id present in a bucket response.
      *
      * @param json the raw bucket response body
      * @return the video ids in the bucket

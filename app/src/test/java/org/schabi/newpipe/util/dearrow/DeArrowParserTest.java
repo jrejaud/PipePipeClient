@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Tests for the DeArrow selection rules.
@@ -291,6 +292,33 @@ public class DeArrowParserTest {
                 fixture("rickroll_single.json"), RICKROLL_ID, DeArrowConfig.allEnabled());
         assertEquals("the bucket and single-video endpoints must agree",
                 fromSingle, fromBucket);
+    }
+
+    /**
+     * A bucket must be parseable in one pass. Reading it entry-by-entry re-parses the whole
+     * body for every video in it; on a real device that quadratic work produced an
+     * "isn't responding" dialog while every test here stayed green (2026-09-23).
+     */
+    @Test
+    public void wholeBucketParsesInOnePassAndAgreesWithPerEntryParsing() throws Exception {
+        final String raw = fixture("rickroll_bucket.json");
+        final Map<String, DeArrowBranding> all =
+                DeArrowParser.parseBucket(raw, DeArrowConfig.allEnabled());
+        assertTrue("a real bucket holds many videos, this one had " + all.size(),
+                all.size() > 10);
+        assertEquals(
+                DeArrowParser.parseBucketEntry(raw, RICKROLL_ID, DeArrowConfig.allEnabled()),
+                all.get(RICKROLL_ID));
+    }
+
+    @Test
+    public void bucketParsedWhileDisabledYieldsNothingForEveryVideo() throws Exception {
+        final Map<String, DeArrowBranding> all =
+                DeArrowParser.parseBucket(fixture("rickroll_bucket.json"),
+                        DeArrowConfig.disabled());
+        for (final DeArrowBranding branding : all.values()) {
+            assertTrue("disabled must yield no replacement anywhere", branding.isEmpty());
+        }
     }
 
     @Test
