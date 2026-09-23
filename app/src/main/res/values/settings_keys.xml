@@ -471,6 +471,17 @@
 
 
     <!-- SponsorBlock -->
+    <!-- DeArrow -->
+    <string name="dearrow_home_page_key" translatable="false">dearrow_home_page</string>
+    <string name="dearrow_enable_key" translatable="false">dearrow_enable</string>
+    <string name="dearrow_replace_titles_key" translatable="false">dearrow_replace_titles</string>
+    <string name="dearrow_replace_thumbnails_key" translatable="false">dearrow_replace_thumbnails</string>
+    <string name="dearrow_random_frame_key" translatable="false">dearrow_random_frame</string>
+    <string name="dearrow_auto_format_key" translatable="false">dearrow_auto_format</string>
+    <string name="dearrow_api_url_key" translatable="false">dearrow_api_url</string>
+    <string name="dearrow_thumbnail_api_url_key" translatable="false">dearrow_thumbnail_api_url</string>
+    <string name="dearrow_clear_cache_key" translatable="false">dearrow_clear_cache</string>
+
     <string name="sponsor_block_home_page_key" translatable="false">sponsor_block_home_page</string>
     <string name="sponsor_block_enable_key" translatable="false">sponsor_block_enable</string>
     <string name="sponsor_block_api_url_key" translatable="false">sponsor_block_api_url</string>

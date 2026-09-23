@@ -18,6 +18,7 @@ import org.schabi.newpipe.extractor.stream.StreamType.VIDEO_STREAM
 import org.schabi.newpipe.util.Localization
 import org.schabi.newpipe.util.PicassoHelper
 import org.schabi.newpipe.util.StreamTypeUtil
+import org.schabi.newpipe.util.dearrow.DeArrowBinder
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 
@@ -108,6 +109,12 @@ data class StreamItem(
 
         PicassoHelper.loadScaledDownThumbnail(viewBinding.root.context, stream.thumbnailUrl)
             .into(viewBinding.itemThumbnailView)
+
+        // See DeArrowBinder: applied on top of the row bound above, never in place of it.
+        DeArrowBinder.apply(
+            stream.serviceId, stream.url,
+            viewBinding.itemVideoTitleView, viewBinding.itemThumbnailView
+        )
 
         viewBinding.itemAdditionalDetails.text =
             getStreamInfoDetailLine(viewBinding.itemAdditionalDetails.context)

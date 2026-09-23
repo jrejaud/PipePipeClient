@@ -19,6 +19,7 @@ import androidx.preference.PreferenceManager;
 
 import org.schabi.newpipe.util.Localization;
 import org.schabi.newpipe.util.PicassoHelper;
+import org.schabi.newpipe.util.dearrow.DeArrowBinder;
 import org.schabi.newpipe.views.AnimatedProgressBar;
 
 import java.util.concurrent.TimeUnit;
@@ -119,6 +120,11 @@ public class StreamInfoItemHolder extends InfoItemHolder {
 
         PicassoHelper.loadScaledDownThumbnail(itemThumbnailView.getContext(), item.getThumbnailUrl())
                 .into(itemThumbnailView);
+
+        // Swap in DeArrow's honest title and thumbnail, if the user opted in. Must stay AFTER
+        // the original bind above: the replacement is applied on top of a fully-populated row,
+        // never in place of populating it, so a slow or failed lookup leaves the row correct.
+        DeArrowBinder.apply(item, itemVideoTitleView, itemThumbnailView);
 
         itemView.setOnClickListener(view -> {
             if (itemBuilder.getOnStreamSelectedListener() != null) {

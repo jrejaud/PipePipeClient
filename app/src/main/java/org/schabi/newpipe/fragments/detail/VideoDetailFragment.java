@@ -102,6 +102,7 @@ import org.schabi.newpipe.player.playqueue.PlayQueue;
 import org.schabi.newpipe.player.playqueue.SinglePlayQueue;
 import org.schabi.newpipe.sleep.SleepTimerService;
 import org.schabi.newpipe.util.*;
+import org.schabi.newpipe.util.dearrow.DeArrowBinder;
 import org.schabi.newpipe.util.external_communication.KoreUtils;
 import org.schabi.newpipe.util.external_communication.ShareUtils;
 
@@ -999,8 +1000,11 @@ public final class VideoDetailFragment
             if (activity == null) {
                 return;
             }
-            // Data can already be drawn, don't spend time twice
-            if (info.getName().equals(binding.detailVideoTitleView.getText().toString())) {
+            // Data can already be drawn, don't spend time twice.
+            // The displayed title is not always info.getName(): DeArrow may have replaced it, and
+            // treating that as "not drawn yet" would redraw the whole page on every check.
+            final String shown = binding.detailVideoTitleView.getText().toString();
+            if (info.getName().equals(shown) || DeArrowBinder.isShowing(info, shown)) {
                 return;
             }
             prepareAndHandleInfo(info, scrollToTop);
@@ -1822,6 +1826,12 @@ public final class VideoDetailFragment
 
         animate(binding.detailThumbnailPlayButton, true, 200);
         binding.detailVideoTitleView.setText(title);
+
+        // Swap in DeArrow's honest title and thumbnail, if the user opted in. Must stay AFTER the
+        // original bind above: the replacement is applied on top of a fully-populated page, never
+        // in place of populating it, so a slow or failed lookup leaves the page correct.
+        DeArrowBinder.apply(info.getServiceId(), info.getUrl(),
+                binding.detailVideoTitleView, binding.detailThumbnailImageView);
 
         binding.detailSubChannelThumbnailView.setVisibility(View.GONE);
 

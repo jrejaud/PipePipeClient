@@ -15,8 +15,9 @@ import org.schabi.newpipe.extractor.NewPipe;
 import org.schabi.newpipe.ktx.ViewUtils;
 import org.schabi.newpipe.local.LocalItemBuilder;
 import org.schabi.newpipe.local.history.HistoryRecordManager;
-import org.schabi.newpipe.util.PicassoHelper;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.util.PicassoHelper;
+import org.schabi.newpipe.util.dearrow.DeArrowBinder;
 import org.schabi.newpipe.views.AnimatedProgressBar;
 
 import java.time.format.DateTimeFormatter;
@@ -116,6 +117,10 @@ public class LocalStatisticStreamItemHolder extends LocalItemHolder {
         // Default thumbnail is shown on error, while loading and if the url is empty
         PicassoHelper.loadScaledDownThumbnail(itemThumbnailView.getContext(), item.getStreamEntity().getThumbnailUrl())
                 .into(itemThumbnailView);
+
+        // See DeArrowBinder: applied on top of the row bound above, never in place of it.
+        DeArrowBinder.apply(item.getStreamEntity().getServiceId(), item.getStreamEntity().getUrl(),
+                itemVideoTitleView, itemThumbnailView);
 
         itemView.setOnClickListener(view -> {
             if (itemBuilder.getOnItemSelectedListener() != null) {

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- View tags used by DeArrowBinder to detect a recycled row. Declared as ids so that the
+         tag keys are guaranteed unique and cannot collide with another feature's setTag(). -->
+    <item name="dearrow_video_id" type="id" />
+    <item name="dearrow_disposable" type="id" />
+</resources>

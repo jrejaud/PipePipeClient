@@ -674,6 +674,30 @@
 <string name="feed_toggle_show_played_items">Show watched items</string>
 <string name="feed_fetch_channel_tabs">Fetch channel tabs</string>
 <string name="feed_fetch_channel_tabs_summary">Tabs to fetch when updating the feed. This option has no effect if a channel is updated using fast mode.</string>
+<!-- DeArrow -->
+<string name="dearrow">DeArrow</string>
+<string name="dearrow_home_page_title">View Website</string>
+<string name="dearrow_home_page_summary">View the official DeArrow website.</string>
+<string name="dearrow_homepage_url" translatable="false">https://dearrow.ajay.app/</string>
+<string name="dearrow_enable_title">Enable DeArrow</string>
+<string name="dearrow_enable_summary">Replace clickbait titles and thumbnails with crowdsourced ones. YouTube only.</string>
+<string name="dearrow_replace_titles_title">Replace titles</string>
+<string name="dearrow_replace_titles_summary">Show the community\'s title instead of the uploader\'s.</string>
+<string name="dearrow_replace_thumbnails_title">Replace thumbnails</string>
+<string name="dearrow_replace_thumbnails_summary">Show a real frame from the video instead of the uploader\'s thumbnail.</string>
+<string name="dearrow_random_frame_title">Use a random frame as a fallback</string>
+<string name="dearrow_random_frame_summary">When nobody has submitted a thumbnail, render a random frame instead of keeping the uploader\'s. Uses more data.</string>
+<string name="dearrow_auto_format_title">Fix SHOUTING titles</string>
+<string name="dearrow_auto_format_summary">Convert titles written in all capitals to sentence case. Acronyms are left alone.</string>
+<string name="dearrow_clear_cache_title">Clear DeArrow cache</string>
+<string name="dearrow_clear_cache_summary">Forget every downloaded title and thumbnail and fetch them again.</string>
+<string name="dearrow_cache_cleared_toast">DeArrow cache cleared</string>
+<string name="dearrow_advanced_category">Advanced</string>
+<string name="dearrow_api_url_title">API Url</string>
+<string name="dearrow_api_url_summary">Where titles and thumbnail timestamps are fetched from. Only change this for a self-hosted mirror.</string>
+<string name="dearrow_thumbnail_api_url_title">Thumbnail server Url</string>
+<string name="dearrow_thumbnail_api_url_summary">Where replacement thumbnails are rendered. Only change this for a self-hosted mirror.</string>
+
 <string name="sponsor_block">SponsorBlock</string>
 <string name="sponsor_block_category_sponsor">Sponsor</string>
 <string name="sponsor_block_category_intro">Intermission/Intro Animation</string>
