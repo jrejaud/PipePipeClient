@@ -36,7 +36,7 @@ public final class DeArrowSettings {
                 true,
                 prefs.getBoolean(context.getString(R.string.dearrow_replace_titles_key), true),
                 prefs.getBoolean(context.getString(R.string.dearrow_replace_thumbnails_key), true),
-                prefs.getBoolean(context.getString(R.string.dearrow_random_frame_key), false),
+                prefs.getBoolean(context.getString(R.string.dearrow_random_frame_key), true),
                 prefs.getBoolean(context.getString(R.string.dearrow_auto_format_key), true),
                 prefs.getString(context.getString(R.string.dearrow_api_url_key),
                         DeArrowConfig.DEFAULT_API_URL),

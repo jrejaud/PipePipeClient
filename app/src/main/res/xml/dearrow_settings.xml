@@ -39,7 +39,7 @@
         <SwitchPreference
             app:iconSpaceReserved="false"
             android:dependency="@string/dearrow_enable_key"
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:key="@string/dearrow_random_frame_key"
             android:summary="@string/dearrow_random_frame_summary"
             android:title="@string/dearrow_random_frame_title"/>

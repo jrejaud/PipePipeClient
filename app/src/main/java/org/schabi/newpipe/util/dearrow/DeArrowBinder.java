@@ -1,6 +1,7 @@
 package org.schabi.newpipe.util.dearrow;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -57,7 +58,14 @@ public final class DeArrowBinder {
     public static void apply(@Nullable final InfoItem infoItem,
                              @NonNull final TextView titleView,
                              @Nullable final ImageView thumbnailView) {
-        applyToVideo(videoIdOf(infoItem), titleView, thumbnailView);
+        final StreamInfoItem item = infoItem instanceof StreamInfoItem
+                ? (StreamInfoItem) infoItem
+                : null;
+        applyToVideo(videoIdOf(infoItem),
+                item == null ? -1 : item.getServiceId(),
+                item == null ? null : item.getUrl(),
+                item == null ? 0 : item.getDuration(),
+                titleView, thumbnailView);
     }
 
     /**
@@ -66,19 +74,25 @@ public final class DeArrowBinder {
      *
      * @param serviceId     the service the stream came from; anything but YouTube is ignored
      * @param url           the stream URL the video id is read out of
+     * @param duration      the video's length in seconds, needed to pick a frame to render
+     *                      when nobody has submitted a thumbnail; 0 disables that fallback
      * @param titleView     the row's title view, already showing the stored title
      * @param thumbnailView the row's thumbnail view, or null
      */
     public static void apply(final int serviceId,
                              @Nullable final String url,
+                             final long duration,
                              @NonNull final TextView titleView,
                              @Nullable final ImageView thumbnailView) {
         applyToVideo(serviceId == ServiceList.YouTube.getServiceId()
                 ? DeArrowVideoId.fromUrl(url)
-                : null, titleView, thumbnailView);
+                : null, serviceId, url, duration, titleView, thumbnailView);
     }
 
     private static void applyToVideo(@Nullable final String videoId,
+                                     final int serviceId,
+                                     @Nullable final String url,
+                                     final long duration,
                                      @NonNull final TextView titleView,
                                      @Nullable final ImageView thumbnailView) {
         if (videoId == null) {
@@ -100,6 +114,10 @@ public final class DeArrowBinder {
         if (!cached.isEmpty()) {
             clearPending(titleView);
             write(cached, titleView, thumbnailView);
+            if (cached.getThumbnailUrl() == null) {
+                renderFallbackFrame(videoId, serviceId, url, duration, titleView,
+                        thumbnailView, config);
+            }
             return;
         }
 
@@ -108,14 +126,20 @@ public final class DeArrowBinder {
                 .lookup(videoId, config)
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(branding -> {
-                    if (branding.isEmpty()) {
-                        return;
-                    }
                     if (!videoId.equals(titleView.getTag(R.id.dearrow_video_id))) {
                         // The holder was recycled onto a different video while we were waiting.
                         return;
                     }
-                    write(branding, titleView, thumbnailView);
+                    if (!branding.isEmpty()) {
+                        write(branding, titleView, thumbnailView);
+                    }
+                    // Most videos have no submission at all, which is exactly when the
+                    // uploader's thumbnail is least trustworthy. Fall back to a frame from
+                    // the video itself, as the browser extension does by default.
+                    if (branding.getThumbnailUrl() == null) {
+                        renderFallbackFrame(videoId, serviceId, url, duration, titleView,
+                                thumbnailView, config);
+                    }
                 }, error -> {
                     // lookup() is documented never to error; this arm exists so that a future
                     // change to it cannot crash the app from a background thread.
@@ -171,12 +195,65 @@ public final class DeArrowBinder {
         return displayed.equals(DeArrowCache.getInstance().getCached(videoId).getTitle());
     }
 
+    /**
+     * Shows a frame from the video itself, for a video nobody has submitted a thumbnail for.
+     *
+     * <p>This is the case that covers most of YouTube. The branding API returns nothing at
+     * all for an unsubmitted video, and the thumbnail server will not render one on demand,
+     * so the frame has to be produced here — see {@link DeArrowFrameRenderer}.</p>
+     *
+     * @param videoId       the video
+     * @param serviceId     its service
+     * @param url           its page URL, which the renderer resolves a stream from
+     * @param duration      its length in seconds
+     * @param titleView     the row's title view, which carries the recycle guard
+     * @param thumbnailView the view to write into; nothing happens if it is null
+     * @param config        the user's settings; the fallback is skipped unless it is on
+     */
+    private static void renderFallbackFrame(@NonNull final String videoId,
+                                            final int serviceId,
+                                            @Nullable final String url,
+                                            final long duration,
+                                            @NonNull final TextView titleView,
+                                            @Nullable final ImageView thumbnailView,
+                                            @NonNull final DeArrowConfig config) {
+        if (thumbnailView == null || url == null
+                || !config.shouldReplaceThumbnails()
+                || !config.shouldUseRandomFrameFallback()) {
+            return;
+        }
+        final Bitmap alreadyRendered = DeArrowFrameRenderer.getInstance().getCached(videoId);
+        if (alreadyRendered != null) {
+            thumbnailView.setImageBitmap(alreadyRendered);
+            return;
+        }
+        final Disposable disposable = DeArrowFrameRenderer.getInstance()
+                .render(serviceId, url, videoId, duration)
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(frame -> {
+                    if (videoId.equals(titleView.getTag(R.id.dearrow_video_id))) {
+                        thumbnailView.setImageBitmap(frame);
+                    }
+                }, error -> {
+                    // render() is documented never to error; this arm only keeps a future
+                    // change to it from crashing the app off a background thread.
+                }, () -> {
+                    // Completed with no frame: the uploader's thumbnail stays, as intended.
+                });
+        titleView.setTag(R.id.dearrow_frame_disposable, disposable);
+    }
+
     /** Cancels any lookup still running for a row that is being rebound. */
     private static void clearPending(@NonNull final TextView titleView) {
-        final Object pending = titleView.getTag(R.id.dearrow_disposable);
+        dispose(titleView, R.id.dearrow_disposable);
+        dispose(titleView, R.id.dearrow_frame_disposable);
+    }
+
+    private static void dispose(@NonNull final TextView titleView, final int tagId) {
+        final Object pending = titleView.getTag(tagId);
         if (pending instanceof Disposable) {
             ((Disposable) pending).dispose();
-            titleView.setTag(R.id.dearrow_disposable, null);
+            titleView.setTag(tagId, null);
         }
     }
 

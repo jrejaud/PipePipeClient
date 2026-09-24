@@ -120,7 +120,7 @@ public class LocalStatisticStreamItemHolder extends LocalItemHolder {
 
         // See DeArrowBinder: applied on top of the row bound above, never in place of it.
         DeArrowBinder.apply(item.getStreamEntity().getServiceId(), item.getStreamEntity().getUrl(),
-                itemVideoTitleView, itemThumbnailView);
+                item.getStreamEntity().getDuration(), itemVideoTitleView, itemThumbnailView);
 
         itemView.setOnClickListener(view -> {
             if (itemBuilder.getOnItemSelectedListener() != null) {

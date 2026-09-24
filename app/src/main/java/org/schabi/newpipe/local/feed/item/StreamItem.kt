@@ -112,7 +112,7 @@ data class StreamItem(
 
         // See DeArrowBinder: applied on top of the row bound above, never in place of it.
         DeArrowBinder.apply(
-            stream.serviceId, stream.url,
+            stream.serviceId, stream.url, stream.duration,
             viewBinding.itemVideoTitleView, viewBinding.itemThumbnailView
         )
 

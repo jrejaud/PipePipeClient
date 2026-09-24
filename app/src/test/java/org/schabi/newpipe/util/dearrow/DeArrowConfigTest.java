@@ -15,9 +15,14 @@ public class DeArrowConfigTest {
                 DeArrowConfig.disabled().isEnabled());
     }
 
+    /**
+     * On by default, matching the browser extension: "if there are no submissions, it will
+     * ... set a screenshot from a random timestamp as the thumbnail". Off, the feature does
+     * nothing at all for the overwhelming majority of videos, which reads as broken.
+     */
     @Test
-    public void randomFrameFallbackIsOffByDefault() {
-        assertFalse("the random-frame fallback costs a render for every video",
+    public void randomFrameFallbackIsOnByDefault() {
+        assertTrue("most videos have no submission; without this the feature is invisible",
                 DeArrowConfig.disabled().shouldUseRandomFrameFallback());
     }
 

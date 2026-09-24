@@ -1830,7 +1830,7 @@ public final class VideoDetailFragment
         // Swap in DeArrow's honest title and thumbnail, if the user opted in. Must stay AFTER the
         // original bind above: the replacement is applied on top of a fully-populated page, never
         // in place of populating it, so a slow or failed lookup leaves the page correct.
-        DeArrowBinder.apply(info.getServiceId(), info.getUrl(),
+        DeArrowBinder.apply(info.getServiceId(), info.getUrl(), info.getDuration(),
                 binding.detailVideoTitleView, binding.detailThumbnailImageView);
 
         binding.detailSubChannelThumbnailView.setVisibility(View.GONE);

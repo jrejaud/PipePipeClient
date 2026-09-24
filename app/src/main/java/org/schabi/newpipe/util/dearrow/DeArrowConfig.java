@@ -53,7 +53,7 @@ public final class DeArrowConfig {
 
     /** The shipped default: DeArrow does nothing until the user opts in. */
     public static DeArrowConfig disabled() {
-        return new DeArrowConfig(false, true, true, false, true,
+        return new DeArrowConfig(false, true, true, true, true,
                 DEFAULT_API_URL, DEFAULT_THUMBNAIL_API_URL);
     }
 
