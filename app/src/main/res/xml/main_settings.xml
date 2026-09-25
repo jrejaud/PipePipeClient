@@ -79,7 +79,7 @@
 
     <PreferenceScreen
         android:fragment="org.schabi.newpipe.settings.DeArrowSettingsFragment"
-        android:icon="@drawable/ic_sponsor_block_enable"
+        android:icon="@drawable/ic_dearrow"
         android:title="@string/dearrow"
         app:iconSpaceReserved="false" />
 

@@ -51,12 +51,20 @@ public final class DeArrowFrameRenderer {
     private static final String TAG = "DeArrowFrameRenderer";
 
     /**
-     * Renders in flight at once. Deliberately small: a screen of results can ask for twenty
-     * at once, and each one opens a video stream. Two keeps memory and bandwidth bounded
-     * while the rest wait their turn.
+     * Renders in flight at once.
+     *
+     * <p>This was 2, and that was the difference between the feature working and the feature
+     * looking dead. Each render is dominated by network waiting — resolving a stream, then
+     * range-reading into it — so a low cap does not save CPU, it just serialises latency: a
+     * screen of eight results rendered four frames in forty seconds, and a user who scrolls
+     * before then sees the uploader's thumbnails and concludes nothing happened
+     * (2026-09-24).</p>
+     *
+     * <p>Six is chosen to cover a visible screen in roughly one pass while still bounding
+     * how many video streams are open at once.</p>
      */
     @VisibleForTesting
-    static final int MAX_CONCURRENT_RENDERS = 2;
+    static final int MAX_CONCURRENT_RENDERS = 6;
 
     /**
      * How many rendered frames to keep. Each is a scaled-down bitmap, so this is a few MB
@@ -199,7 +207,7 @@ public final class DeArrowFrameRenderer {
                 frame.recycle();
             }
             frames.put(videoId, scaled);
-            Log.d(TAG, "rendered a frame for " + videoId + " at " + seconds + "s");
+
             return scaled;
         } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();

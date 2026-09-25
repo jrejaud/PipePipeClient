@@ -8,6 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+
 import org.schabi.newpipe.R;
 import org.schabi.newpipe.extractor.InfoItem;
 import org.schabi.newpipe.extractor.ServiceList;
@@ -222,6 +223,19 @@ public final class DeArrowBinder {
                 || !config.shouldUseRandomFrameFallback()) {
             return;
         }
+        // A live stream has no duration to seek into, so the seeded-frame path cannot work.
+        // The thumbnail server can render the current moment of a broadcast though, which
+        // is what the extension does for live, so hand it straight to the image loader.
+        // Live streams are DELIBERATELY left alone for now. The thumbnail server answers
+        // HTTP 204 for a broadcast it cannot render and Picasso then shows an empty grey
+        // box — strictly worse than the broadcaster's own image, and repairing it from
+        // Picasso's error callback did not reliably fire. Skipping is the honest behaviour
+        // until that is solved properly; tracked as its own piece of work (SC-5739), and
+        // DeArrowLiveThumbnail plus its tests are kept for it.
+        if (DeArrowLiveThumbnail.isLive(duration)) {
+            return;
+        }
+
         final Bitmap alreadyRendered = DeArrowFrameRenderer.getInstance().getCached(videoId);
         if (alreadyRendered != null) {
             thumbnailView.setImageBitmap(alreadyRendered);
@@ -234,6 +248,8 @@ public final class DeArrowBinder {
                     if (videoId.equals(titleView.getTag(R.id.dearrow_video_id))) {
                         thumbnailView.setImageBitmap(frame);
                     }
+                    // Otherwise the holder was recycled onto a different video while the
+                    // frame was rendering, and writing it would corrupt the wrong row.
                 }, error -> {
                     // render() is documented never to error; this arm only keeps a future
                     // change to it from crashing the app off a background thread.
