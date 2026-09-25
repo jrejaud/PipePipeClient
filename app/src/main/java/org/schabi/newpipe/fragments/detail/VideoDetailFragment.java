@@ -102,6 +102,7 @@ import org.schabi.newpipe.player.playqueue.PlayQueue;
 import org.schabi.newpipe.player.playqueue.SinglePlayQueue;
 import org.schabi.newpipe.sleep.SleepTimerService;
 import org.schabi.newpipe.util.*;
+import org.schabi.newpipe.extractor.stream.StreamType;
 import org.schabi.newpipe.util.dearrow.DeArrowBinder;
 import org.schabi.newpipe.util.external_communication.KoreUtils;
 import org.schabi.newpipe.util.external_communication.ShareUtils;
@@ -1831,6 +1832,8 @@ public final class VideoDetailFragment
         // original bind above: the replacement is applied on top of a fully-populated page, never
         // in place of populating it, so a slow or failed lookup leaves the page correct.
         DeArrowBinder.apply(info.getServiceId(), info.getUrl(), info.getDuration(),
+                info.getStreamType() == StreamType.LIVE_STREAM
+                        || info.getStreamType() == StreamType.AUDIO_LIVE_STREAM,
                 binding.detailVideoTitleView, binding.detailThumbnailImageView);
 
         binding.detailSubChannelThumbnailView.setVisibility(View.GONE);

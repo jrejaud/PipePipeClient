@@ -16,6 +16,7 @@ import org.schabi.newpipe.ktx.ViewUtils;
 import org.schabi.newpipe.local.LocalItemBuilder;
 import org.schabi.newpipe.local.history.HistoryRecordManager;
 import org.schabi.newpipe.util.Localization;
+import org.schabi.newpipe.extractor.stream.StreamType;
 import org.schabi.newpipe.util.PicassoHelper;
 import org.schabi.newpipe.util.dearrow.DeArrowBinder;
 import org.schabi.newpipe.views.AnimatedProgressBar;
@@ -120,7 +121,10 @@ public class LocalStatisticStreamItemHolder extends LocalItemHolder {
 
         // See DeArrowBinder: applied on top of the row bound above, never in place of it.
         DeArrowBinder.apply(item.getStreamEntity().getServiceId(), item.getStreamEntity().getUrl(),
-                item.getStreamEntity().getDuration(), itemVideoTitleView, itemThumbnailView);
+                item.getStreamEntity().getDuration(),
+                item.getStreamEntity().getStreamType() == StreamType.LIVE_STREAM
+                        || item.getStreamEntity().getStreamType() == StreamType.AUDIO_LIVE_STREAM,
+                itemVideoTitleView, itemThumbnailView);
 
         itemView.setOnClickListener(view -> {
             if (itemBuilder.getOnItemSelectedListener() != null) {

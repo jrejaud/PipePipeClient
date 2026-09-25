@@ -16,6 +16,7 @@ import org.schabi.newpipe.extractor.stream.VideoStream;
 import org.schabi.newpipe.util.ExtractorHelper;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,14 @@ public final class DeArrowFrameRenderer {
      * rather than a few hundred.
      */
     private static final int MAX_CACHED_FRAMES = 60;
+
+    /**
+     * How many formats to try before giving up on a video. Three covers the case that
+     * motivated this — the smallest format refusing to open while the next one works —
+     * without turning one thumbnail into an unbounded series of network attempts.
+     */
+    @VisibleForTesting
+    static final int MAX_STREAMS_TRIED = 3;
 
     /** Frames are rendered small: they are shown in a list row, never full screen. */
     private static final int TARGET_WIDTH = 480;
@@ -172,13 +181,18 @@ public final class DeArrowFrameRenderer {
         if (info.getVideoOnlyStreams() != null) {
             candidates.addAll(info.getVideoOnlyStreams());
         }
-        final String streamUrl = smallestVideoUrl(candidates);
-        if (streamUrl == null) {
+        // Try several streams, smallest first, rather than betting on one. The smallest
+        // format is often 144p AVC (itag 160) and MediaMetadataRetriever refuses to open
+        // some of those outright — "setDataSource failed: status = 0x80000000" — while the
+        // next format up opens fine. Giving up after the first candidate left visible rows
+        // with their clickbait thumbnails for no better reason than format roulette
+        // (2026-09-25).
+        final List<String> urls = videoUrlsSmallestFirst(candidates);
+        if (urls.isEmpty()) {
             Log.d(TAG, "no usable video stream for " + videoId);
             return null;
         }
 
-        MediaMetadataRetriever retriever = null;
         boolean acquired = false;
         try {
             // Queue rather than drop. Returning immediately when busy meant a screen of
@@ -187,6 +201,43 @@ public final class DeArrowFrameRenderer {
             renderSlots.acquire();
             acquired = true;
 
+            for (final String streamUrl : urls) {
+                final Bitmap frame = grabFrame(streamUrl, seconds);
+                if (frame == null) {
+                    continue;
+                }
+                final Bitmap scaled =
+                        Bitmap.createScaledBitmap(frame, TARGET_WIDTH, TARGET_HEIGHT, true);
+                if (scaled != frame) {
+                    frame.recycle();
+                }
+                frames.put(videoId, scaled);
+                return scaled;
+            }
+            Log.d(TAG, "no stream would open for " + videoId + " (" + urls.size()
+                    + " tried)");
+            return null;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } finally {
+            if (acquired) {
+                renderSlots.release();
+            }
+        }
+    }
+
+    /**
+     * Opens one stream and takes a frame from it.
+     *
+     * @param streamUrl the video URL
+     * @param seconds   where in the video to grab from
+     * @return the frame, or null if this stream would not open or had nothing there
+     */
+    @Nullable
+    private static Bitmap grabFrame(@NonNull final String streamUrl, final double seconds) {
+        MediaMetadataRetriever retriever = null;
+        try {
             retriever = new MediaMetadataRetriever();
             // YouTube refuses a request with no User-Agent, and MediaMetadataRetriever's
             // native HTTP stack sends none by default. Reuse the app's own so the stream
@@ -194,35 +245,14 @@ public final class DeArrowFrameRenderer {
             final Map<String, String> headers = new HashMap<>();
             headers.put("User-Agent", DownloaderImpl.USER_AGENT);
             retriever.setDataSource(streamUrl, headers);
-
-            final Bitmap frame = retriever.getFrameAtTime((long) (seconds * 1_000_000L),
+            return retriever.getFrameAtTime((long) (seconds * 1_000_000L),
                     MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
-            if (frame == null) {
-                Log.d(TAG, "no frame at " + seconds + "s for " + videoId);
-                return null;
-            }
-            final Bitmap scaled =
-                    Bitmap.createScaledBitmap(frame, TARGET_WIDTH, TARGET_HEIGHT, true);
-            if (scaled != frame) {
-                frame.recycle();
-            }
-            frames.put(videoId, scaled);
-
-            return scaled;
-        } catch (final InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return null;
         } catch (final Exception | OutOfMemoryError e) {
-            // Swallowed on purpose: a frame we could not grab means the user keeps the
-            // uploader's thumbnail, which is the correct fallback. Anything thrown here —
-            // an unsupported codec, a dead URL, a device with no memory to spare — must not
-            // break browsing over a cosmetic feature.
-            Log.d(TAG, "could not render a frame for " + videoId + " from " + streamUrl, e);
+            // Swallowed on purpose: the caller simply moves on to the next format, and if
+            // none opens the row keeps the uploader's thumbnail, which is the correct
+            // fallback. A cosmetic feature must never break browsing.
             return null;
         } finally {
-            if (acquired) {
-                renderSlots.release();
-            }
             if (retriever != null) {
                 try {
                     retriever.release();
@@ -245,30 +275,40 @@ public final class DeArrowFrameRenderer {
      * nothing to render from at all, which showed up as the feature silently doing
      * nothing.</p>
      *
+     * <p>Returns several, ordered, because the smallest format does not always open —
+     * the caller works down the list until one does.</p>
+     *
      * @param streams the resolved video streams
-     * @return a URL, or null if none is usable
+     * @return usable URLs, smallest resolution first; empty if none are usable
      */
-    @Nullable
+    @NonNull
     @VisibleForTesting
-    static String smallestVideoUrl(@Nullable final List<VideoStream> streams) {
+    static List<String> videoUrlsSmallestFirst(@Nullable final List<VideoStream> streams) {
+        final List<String> urls = new ArrayList<>();
         if (streams == null || streams.isEmpty()) {
-            return null;
+            return urls;
         }
-        VideoStream best = null;
-        int bestHeight = Integer.MAX_VALUE;
+        final List<VideoStream> usable = new ArrayList<>();
         for (final VideoStream stream : streams) {
-            if (stream == null || stream.getUrl() == null) {
-                continue;
-            }
-            final int height = heightOf(stream.getResolution());
-            if (height > 0 && height < bestHeight) {
-                bestHeight = height;
-                best = stream;
-            } else if (best == null) {
-                best = stream;
+            if (stream != null && stream.getUrl() != null) {
+                usable.add(stream);
             }
         }
-        return best == null ? null : best.getUrl();
+        // An unreadable resolution sorts last rather than first: it is a guess, and a
+        // guess should not displace a format whose size is actually known.
+        usable.sort(Comparator.comparingInt(s -> {
+            final int height = heightOf(s.getResolution());
+            return height > 0 ? height : Integer.MAX_VALUE;
+        }));
+        for (final VideoStream stream : usable) {
+            if (!urls.contains(stream.getUrl())) {
+                urls.add(stream.getUrl());
+            }
+            if (urls.size() >= MAX_STREAMS_TRIED) {
+                break;
+            }
+        }
+        return urls;
     }
 
     /**
